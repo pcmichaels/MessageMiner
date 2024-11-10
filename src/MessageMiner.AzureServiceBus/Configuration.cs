@@ -9,6 +9,6 @@ namespace MessageMiner.AzureServiceBus
 {
     public class Configuration : IConfiguration
     {
-        public string ConnectionString { get; set; }
+        public string? ConnectionString { get; set; }
     }
 }

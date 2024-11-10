@@ -4,5 +4,6 @@
     {
         Task<IList<string>> GetAllTopics();
         Task<IList<string>> GetAllSubscriptions(string topic);
+        Task<List<string>> GetAllDeadLetterQueues();
     }
 }

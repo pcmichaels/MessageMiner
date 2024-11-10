@@ -27,8 +27,6 @@ namespace MessageMiner.TestHarness
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            _track.Configure("pcm - test message");
-
             while (true)
             {
                 var choice = AnsiConsole.Prompt(
@@ -50,42 +48,12 @@ namespace MessageMiner.TestHarness
                         _appLifetime.StopApplication();
                         return;
 
-                    case "1":
-                        // Trace Message
-                        int count = await _track.Inject();
-                        await Task.Delay(5000);
-                        var traces = await _track.Detect();
-
-                        var grid = new Grid();
-                        grid.AddColumns(5);
-                        grid.AddRow(new string[] { "Time Injected", "Topic", "Correlation Id", "Time Detected", "Subscription" });
-                        foreach (var trace in traces.OrderBy(a => a.Index))
-                        {
-                            grid.AddRow(new string[]
-                            {
-                                trace.InjectedDateStamp.ToString(),                                
-                                trace.Topic ?? "NULL",
-                                trace.CorrelationId ?? "NULL", 
-                                "", ""
-                            });
-                            foreach (var detected in trace.Detected)
-                            {
-                                grid.AddRow(new string[]
-                                {
-                                    "", "", "", 
-                                    detected.DetectedDateStamp.ToString(),
-                                    detected.Subscription
-                                });
-                            }
-                        }
-                        AnsiConsole.Write(grid);
-                        
+                    case "1": // Trace Message                        
+                        await TraceMessage();
                         break;
 
-                    case "2":
-                        // Dead Letter Analyser
-                        var deadLetterQueues = _track.GetDeadLetterQueues();
-                        await _track.DetectDuplicates();
+                    case "2": // Dead Letter Analyser                        
+                        await DeadLetterAnalysis();
                         break;
 
                     case "3":
@@ -96,9 +64,61 @@ namespace MessageMiner.TestHarness
             }
         }
 
+        private async Task DeadLetterAnalysis()
+        {
+            var deadLetterQueues = await _track.GetDeadLetterQueues();
+            foreach(var deadLetterQueue in deadLetterQueues)
+            {
+                _logger.LogTrace($"DLQ: {deadLetterQueue}");
+            }
+            // await _track.DetectDuplicates();
+            // await _track.DetectDLQFrequency
+        }
+
+        private async Task TraceMessage()
+        {
+            var message = new
+            {
+                Mmessage = "Dye Test",
+                DateTime = DateTime.Now               
+            };
+
+            var messageBody = System.Text.Json.JsonSerializer.Serialize(message);
+            _track.Configure(messageBody);
+
+            int count = await _track.Inject();
+            await Task.Delay(5000);
+            var traces = await _track.Detect();
+
+            var grid = new Grid();
+            grid.AddColumns(5);
+            grid.AddRow(new string[] { "Time Injected", "Topic", "Correlation Id", "Time Detected", "Subscription" });
+            foreach (var trace in traces.OrderBy(a => a.Index))
+            {
+                grid.AddRow(new string[]
+                {
+                    trace.InjectedDateStamp.ToString(),
+                    trace.Topic ?? "NULL",
+                    trace.CorrelationId ?? "NULL",
+                    "", ""
+                });
+                foreach (var detected in trace.Detected)
+                {
+                    grid.AddRow(new string[]
+                    {
+                        "", "", "",
+                        detected.DetectedDateStamp.ToString(),
+                        detected.Subscription
+                    });
+                }
+            }
+            AnsiConsole.Write(grid);
+        }
+
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            
+            _logger.LogTrace("Stop");
+            return Task.CompletedTask;
         }
     }
 }

@@ -21,7 +21,7 @@ await Host.CreateDefaultBuilder(args)
         services.AddSingleton<IManagement, Management>();
         services.AddSingleton<MessageMiner.Common.IConfiguration>(new Configuration()
         {
-            ConnectionString = ""
+            ConnectionString = configuration.GetValue<string>("ConnectionString")            
         });
         services.AddLogging(a => a.AddConsole());
     })

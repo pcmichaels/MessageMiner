@@ -1,10 +1,5 @@
 ﻿using Azure.Messaging.ServiceBus.Administration;
 using MessageMiner.Common;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 // https://pmichaels.net/2022/08/21/listing-all-topics-and-subscriptions-in-an-azure-service-bus-namespace/
 
@@ -15,7 +10,58 @@ namespace MessageMiner.AzureServiceBus
         public Management(IConfiguration configuration)
         {
             ServiceBusHelper.Initialise(((Configuration)configuration).ConnectionString);
+        }
 
+        public async Task<List<string>> GetAllDeadLetterQueues()
+        {
+            List<string> deadLetterQueues = new List<string>();
+
+            var managementClient = ServiceBusHelper.Instance
+                .ServiceBusManagementClient;
+
+            var pageableQueues = managementClient
+                .GetQueuesAsync();
+
+            var queues = pageableQueues.AsPages();
+            await foreach (var queue in queues)
+            { 
+                var dlqs = queue.Values
+                    .Where(q => q.Status == EntityStatus.ReceiveDisabled 
+                    && q.Name.EndsWith("/$DeadLetterQueue"));
+
+                foreach (var dlq in dlqs)
+                {
+                    deadLetterQueues.Add(dlq.Name);
+                }                
+            }
+
+            return deadLetterQueues;
+        }
+
+        public async Task<List<string>> GetAllDeadLetterTopics()
+        {
+            List<string> deadLetterQueues = new List<string>();
+
+            var managementClient = ServiceBusHelper.Instance
+                .ServiceBusManagementClient;
+
+            var pageableQueues = managementClient
+                .GetTopicsAsync();
+
+            var topics = pageableQueues.AsPages();
+            await foreach (var queue in topics)
+            {
+                var dlqs = queue.Values
+                    .Where(q => q.Status == EntityStatus.ReceiveDisabled
+                    && q.Name.EndsWith("/$DeadLetterQueue"));
+
+                foreach (var dlq in dlqs)
+                {
+                    deadLetterQueues.Add(dlq.Name);
+                }
+            }
+
+            return deadLetterQueues;
         }
 
         public async Task<IList<string>> GetAllSubscriptions(string topic)

@@ -1,6 +1,10 @@
 ﻿using MessageMiner.Common;
 using Microsoft.Extensions.Logging;
+using System.Collections;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Text;
+using System.Xml.Linq;
 
 namespace MessageMiner.Detect;
 
@@ -93,9 +97,10 @@ public class Track
         throw new NotImplementedException();
     }
 
-    public object GetDeadLetterQueues()
+    public async Task<List<string>> GetDeadLetterQueues()
     {
-        throw new NotImplementedException();
+        var deadLetterQueues = await _management.GetAllDeadLetterQueues();
+        return deadLetterQueues;
     }
 
     public async Task<int> Inject()
